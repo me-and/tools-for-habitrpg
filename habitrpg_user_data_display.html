@@ -91,7 +91,7 @@ var user;    // holds user's data
 ////   Global Connection Variables      //////////////////////////////
 //////////////////////////////////////////////////////////////////////
 var serverName        = 'Habitica'; // used in "loading" message
-var serverUrl         = 'https://habitrpg.com:443/api/v2';
+var serverUrl         = 'https://habitica.com:443/api/v2';
 // serverUrl         = 'https://habitrpg.herokuapp.com:443/api/v2';
 var serverPathContent = '/content?language=en';
 var serverPathTavern  = '/groups/habitrpg';
@@ -368,9 +368,9 @@ function parseData() {
     var sleeping = user.preferences.sleep; // true if resting in the inn
     var userKlass = user.stats.class;
     var health = getCurrentHealth(); // also sets dashboard tile
-    var quest = $.extend({}, user.party.quest);
+    var quest = {};
     // user.party.quest.key='vice3'; party.quest.active=true; // FOR TESTING
-    if (user.party.quest.key && party.quest && party.quest.active) {
+    if (user.party && user.party.quest && user.party.quest.key && party.quest && party.quest.active) {
         quest = $.extend({}, user.party.quest);
         quest.content = $.extend({}, content.quests[ party.quest.key ] );
     }
@@ -833,6 +833,7 @@ function collateAndDisplayTaskData() {
     var reddestHabit = {};
     var reddestDaily = {};
     var biggestTask  = {}; // task with greatest absolute magnitude
+    var everyXDaysInUse = false;
     var habits   = collateHabitsData();  // populates the...
     var dailies  = collateDailiesData(); // ... function's "global" variables...
     var todosAll = collateTodosData();   // ... defined above...
@@ -1089,6 +1090,9 @@ function collateAndDisplayTaskData() {
                 return task.repeat[dayname];
             }
             else if (task.frequency === 'daily') { // Every X Days
+                if (task.everyX > 1) { // bug not relevant if due EVERY day
+                    everyXDaysInUse = true;
+                }
                 var daysSinceTaskStart = todayUser.diff(startDate, 'days');
                 return (daysSinceTaskStart % task.everyX == 0);
             }
@@ -1930,7 +1934,13 @@ randomTodoHtml
                 'status': ((damageToUser) ? 'danger' : 'safe')
                 };
             if (quest.content && quest.content.boss) {
-                DASHBOARD.damageToParty = {'label': 'Est. Damage to Party',
+                var label = 'Est. Damage to Party';
+                if (userId == '3e595299-3d8a-4a10-bfe0-88f555e4aa0c' ||
+                    userId == 'e7b5d1e2-3b6e-4192-b867-8bafdb03eeec'    // Ryan
+                ) {
+                    label = 'Est.Dam.2Part. :P';
+                }
+                DASHBOARD.damageToParty = {'label': label,
                     'hoverText': 'health loss your party will take ' +
                          'overnight from your quest boss due to your own ' +
                          'uncompleted Dailies (click for more information)',
@@ -2004,6 +2014,10 @@ randomTodoHtml
         }
         else {
             html += '<p>You have completed all of the Dailies due today.</p>';
+        }
+        if (everyXDaysInUse) {
+            html += '<h3>Warning: "Every X Days" Dailies</h3>' +
+                    '<p>You have one or more Dailies that use the "Every X Days" repeat setting. If you live in a timezone where daylight savings is used for part of the year, then it is possible that these Dailies are being incorrectly reported here as due or not due. If Habitica is telling you that an "Every X Days" Daily is due, but the Data Display Tool is saying it isn\'t, then Habitica is likely to be correct. You can get around this problem by editing each of the affected Dailies to set the Start Date to a date that is more recent than the last daylight savings change in your region. A proper fix for this will be done soon.</p>';
         }
         if (dailiesIncompleteGrey.length > 0) {
             html += '<h3>Grey Dailies</h3><p>' +
@@ -3080,7 +3094,7 @@ function questProgress() {
     //
 
     var alreadyHaveDashboardTile = false;
-    if ((quest.content && quest.content.boss) || tavernBoss) {
+    if (quest && quest.progress && ((quest.content && quest.content.boss) || tavernBoss)) {
         var progress = Math.floor(quest.progress.up * 10) / 10;
         // Round DOWN with floor so we don't let the user think they
         // have even slightly more progress than they really have.
@@ -4171,6 +4185,7 @@ function computeStats(withBuffs) {
         details['equipment']  = 0;
         details['classBonus'] = 0;
         for(var key in equippedKeys) {
+            // console.log(key); // TST
             var obj = equippedKeys[key];
             var value = obj[stat];
             details['equipment'] += value;
@@ -5009,7 +5024,7 @@ ul#tableOfContents > li {
 <body onload="document.getElementById('apiToken').value = localStorage.getItem('apiToken'); document.getElementById('userId').value = localStorage.getItem('userId'); if (localStorage.getItem('apiToken') === null) { document.getElementById('rememberMe').checked = false; } else { document.getElementById('rememberMe').checked = true; }"><div id="innerBody">
 
 <h1><a href="https://habitica.com/">Habitica</a> <strong style="color:red">Unofficial</strong> User Data Display Tool
-    <span class="showHideToggle" data-target="versionChanges" data-closemainsections="true">(v7.1)</span></h1><!-- VERSION TOGGLE -->
+    <span class="showHideToggle" data-target="versionChanges" data-closemainsections="true">(v7.2)</span></h1><!-- VERSION TOGGLE -->
 <div id="headerExtras"></div>
 <hr class="clear" />
 <!--
@@ -5043,6 +5058,15 @@ ul#tableOfContents > li {
 <div id="versionChanges" class="hide"><!-- VERSION SECTION -->
     <h2>Version History</h2>
     <dl>
+
+        <dt>7.2 <span class="date">2015-11-24</span></dt>
+        <dd><ul>
+            <li>Code:
+                <ul>
+                    <li>Change the API call to use habitica.com instead of habitrpg.com, only months late.</li>
+                </ul>
+            </li>
+        </ul></dd>
 
         <dt>7.1 <span class="date">2015-08-15</span></dt>
         <dd><ul>
